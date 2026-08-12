@@ -9,6 +9,7 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -55,7 +56,7 @@ public class AztecPhase extends Module {
 
     private final Setting<SwitchMode> switchMode = sgPearl.add(new EnumSetting.Builder<SwitchMode>()
         .name("switch-mode")
-        .description("How to switch to the pearl. Silent = no animation, Normal = visible swap.")
+        .description("How to switch to the pearl. Silent = packet only, Normal = visible swap.")
         .defaultValue(SwitchMode.Silent)
         .visible(() -> mode.get() == PhaseMode.Pearl)
         .build()
@@ -65,7 +66,7 @@ public class AztecPhase extends Module {
         .name("swap-back")
         .description("Swap back to original slot after throwing pearl.")
         .defaultValue(true)
-        .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
+        .visible(() -> mode.get() == PhaseMode.Pearl)
         .build()
     );
 
@@ -139,44 +140,67 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            ChatUtils.sendPlayerMsg("[AztecPhase] No pearls in hotbar!");
+            // LOG interno con prefix [AztecAddon] - NO envía al servidor
+            ChatUtils.warningPrefix("AztecAddon", "No pearls in hotbar!");
             return;
         }
 
-        if (swapBack.get() && switchMode.get() == SwitchMode.Normal) {
-            originalSlot = mc.player.getInventory().getSelectedSlot();
-        }
+        int pearlSlot = pearl.slot();
+        int currentSlot = mc.player.getInventory().getSelectedSlot();
 
-        if (mc.player.getInventory().getSelectedSlot() == pearl.slot()) {
-            throwPearl();
-            return;
+        if (swapBack.get()) {
+            originalSlot = currentSlot;
         }
 
         if (switchMode.get() == SwitchMode.Silent) {
-            InvUtils.swap(pearl.slot(), false);
-            throwPearl();
+            // SILENT MODE: Solo packets, sin animación visual
+            setSelectedSlot(pearlSlot);
+            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(pearlSlot));
+
+            throwPearlSilent();
         } else {
-            InvUtils.swap(pearl.slot(), true);
-            mc.execute(() -> {
-                throwPearl();
-                if (swapBack.get() && originalSlot != -1) {
-                    InvUtils.swap(originalSlot, true);
-                    originalSlot = -1;
-                }
-            });
+            // NORMAL MODE: Swap visible con animación
+            if (currentSlot != pearlSlot) {
+                InvUtils.swap(pearlSlot, true);
+            }
+            throwPearlNormal();
         }
     }
 
-    private void throwPearl() {
+    private void throwPearlSilent() {
+        Direction collisionDir = getCollisionDirection();
+        float yaw = getYawFromDirection(collisionDir);
+
+        Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
+            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+
+            // Restaurar slot original en el servidor
+            if (swapBack.get() && originalSlot != -1) {
+                setSelectedSlot(originalSlot);
+                mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(originalSlot));
+                originalSlot = -1;
+            }
+
+            toggle();
+        });
+    }
+
+    private void throwPearlNormal() {
         Direction collisionDir = getCollisionDirection();
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
             if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+
+                if (swapBack.get() && originalSlot != -1) {
+                    InvUtils.swap(originalSlot, true);
+                    originalSlot = -1;
+                }
+
                 toggle();
             } else {
-                ChatUtils.sendPlayerMsg("[AztecPhase] Failed to throw pearl!");
+                ChatUtils.warningPrefix("AztecAddon", "Failed to throw pearl!");
             }
         });
     }
@@ -204,6 +228,20 @@ public class AztecPhase extends Module {
             case EAST -> -90f;
             default -> mc.player.getYaw();
         };
+    }
+
+    /**
+     * Cambia el slot seleccionado del jugador usando reflection.
+     * Necesario porque selectedSlot es privado en PlayerInventory desde 1.21+
+     */
+    private void setSelectedSlot(int slot) {
+        try {
+            var field = mc.player.getInventory().getClass().getDeclaredField("selectedSlot");
+            field.setAccessible(true);
+            field.setInt(mc.player.getInventory(), slot);
+        } catch (Exception e) {
+            ChatUtils.warningPrefix("AztecAddon", "Failed to set slot: " + e.getMessage());
+        }
     }
 
     public enum PhaseMode {

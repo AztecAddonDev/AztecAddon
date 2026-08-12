@@ -102,7 +102,7 @@ public class AztecBookBan extends Module {
 
     private int delayLeft;
     private int booksProcessed;
-    private boolean shouldDrop;
+    private int activeSlot = -1;
 
     public AztecBookBan() {
         super(AddonTemplate.CATEGORY, "aztec-book-ban", "Creates bookbans and protects you from them.");
@@ -112,13 +112,14 @@ public class AztecBookBan extends Module {
     public void onActivate() {
         delayLeft = 0;
         booksProcessed = 0;
-        shouldDrop = false;
+        activeSlot = -1;
     }
 
     @Override
     public void onDeactivate() {
         if (booksProcessed > 0) {
-            ChatUtils.sendPlayerMsg("[AztecBookBan] Processed " + booksProcessed + " books.");
+            // LOG interno con prefix [AztecAddon]
+            ChatUtils.infoPrefix("AztecAddon", "Processed " + booksProcessed + " books.");
         }
     }
 
@@ -126,9 +127,9 @@ public class AztecBookBan extends Module {
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
 
-        if (shouldDrop) {
-            mc.player.dropSelectedItem(true);
-            shouldDrop = false;
+        if (activeSlot != -1 && autoDrop.get()) {
+            InvUtils.drop().slot(activeSlot);
+            activeSlot = -1;
             return;
         }
 
@@ -139,13 +140,15 @@ public class AztecBookBan extends Module {
 
         var book = InvUtils.find(Items.WRITABLE_BOOK);
         if (!book.found()) {
-            ChatUtils.sendPlayerMsg("[AztecBookBan] No more writable books found.");
+            // LOG interno con prefix [AztecAddon]
+            ChatUtils.warningPrefix("AztecAddon", "No more writable books found.");
             toggle();
             return;
         }
 
         int selectedSlot = mc.player.getInventory().getSelectedSlot();
-        InvUtils.move().from(book.slot()).to(selectedSlot);
+        InvUtils.move().from(book.slot()).toHotbar(selectedSlot);
+        activeSlot = selectedSlot;
 
         List<String> pageContents = generatePages();
 
@@ -156,7 +159,6 @@ public class AztecBookBan extends Module {
         ));
 
         booksProcessed++;
-        shouldDrop = autoDrop.get();
         delayLeft = delay.get();
     }
 
