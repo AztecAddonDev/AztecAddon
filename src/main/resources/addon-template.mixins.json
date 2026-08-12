@@ -3,11 +3,11 @@
   "package": "com.example.addon.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ExampleMixin",
-    "DeathScreenMixin",
-    "GameRendererMixin",
-    "PlayerInventoryMixin",
-    "AztecAntiBookBanMixin"
+    "dev.aztec.addon.mixin.ExampleMixin",
+    "dev.aztec.addon.mixin.DeathScreenMixin",
+    "dev.aztec.addon.mixin.GameRendererMixin",
+    "dev.aztec.addon.mixin.PlayerInventoryMixin",
+    "dev.aztec.addon.mixin.AztecAntiBookBanMixin"
   ],
   "injectors": {
     "defaultRequire": 1
