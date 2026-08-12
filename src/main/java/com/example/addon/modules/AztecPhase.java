@@ -56,7 +56,7 @@ public class AztecPhase extends Module {
 
     private final Setting<SwitchMode> switchMode = sgPearl.add(new EnumSetting.Builder<SwitchMode>()
         .name("switch-mode")
-        .description("How to switch to the pearl. Silent = packet only, Normal = visible swap.")
+        .description("How to switch to the pearl. Silent = packet spoof (no visual change), Normal = visible swap.")
         .defaultValue(SwitchMode.Silent)
         .visible(() -> mode.get() == PhaseMode.Pearl)
         .build()
@@ -64,9 +64,10 @@ public class AztecPhase extends Module {
 
     private final Setting<Boolean> swapBack = sgPearl.add(new BoolSetting.Builder()
         .name("swap-back")
-        .description("Swap back to original slot after throwing pearl.")
+        .description("Swap back to original slot after throwing pearl. (Only for Normal mode)")
         .defaultValue(true)
-        .visible(() -> mode.get() == PhaseMode.Pearl)
+        // ✅ Solo visible si estamos en Pearl Mode Y el switch es Normal
+        .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
         .build()
     );
 
@@ -140,7 +141,6 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            // LOG interno con prefix [AztecAddon] - NO envía al servidor
             ChatUtils.warningPrefix("AztecAddon", "No pearls in hotbar!");
             return;
         }
@@ -148,38 +148,35 @@ public class AztecPhase extends Module {
         int pearlSlot = pearl.slot();
         int currentSlot = mc.player.getInventory().getSelectedSlot();
 
-        if (swapBack.get()) {
-            originalSlot = currentSlot;
-        }
-
         if (switchMode.get() == SwitchMode.Silent) {
-            // SILENT MODE: Solo packets, sin animación visual
-            setSelectedSlot(pearlSlot);
+            // SILENT MODE (Spoof): El cliente NO cambia de slot visualmente.
+            // Solo informamos al servidor que "seleccionamos" el slot de la perla.
             mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(pearlSlot));
-
-            throwPearlSilent();
+            throwPearlSilent(currentSlot);
         } else {
-            // NORMAL MODE: Swap visible con animación
+            // NORMAL MODE: Swap visible con animación en el cliente Y packet al servidor.
             if (currentSlot != pearlSlot) {
                 InvUtils.swap(pearlSlot, true);
+            }
+            if (swapBack.get()) {
+                originalSlot = currentSlot;
             }
             throwPearlNormal();
         }
     }
 
-    private void throwPearlSilent() {
+    private void throwPearlSilent(int clientSlot) {
         Direction collisionDir = getCollisionDirection();
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
+            // El cliente interactúa. El servidor procesa la perla.
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
 
-            // Restaurar slot original en el servidor
-            if (swapBack.get() && originalSlot != -1) {
-                setSelectedSlot(originalSlot);
-                mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(originalSlot));
-                originalSlot = -1;
-            }
+            // OBLIGATORIO en Silent: Restaurar el slot en el servidor automáticamente.
+            // Si no lo hacemos, el servidor pensará que seguimos con la perla en la mano
+            // y nuestros siguientes ataques/usos con el item real del cliente fallarán (desync).
+            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(clientSlot));
 
             toggle();
         });
@@ -228,20 +225,6 @@ public class AztecPhase extends Module {
             case EAST -> -90f;
             default -> mc.player.getYaw();
         };
-    }
-
-    /**
-     * Cambia el slot seleccionado del jugador usando reflection.
-     * Necesario porque selectedSlot es privado en PlayerInventory desde 1.21+
-     */
-    private void setSelectedSlot(int slot) {
-        try {
-            var field = mc.player.getInventory().getClass().getDeclaredField("selectedSlot");
-            field.setAccessible(true);
-            field.setInt(mc.player.getInventory(), slot);
-        } catch (Exception e) {
-            ChatUtils.warningPrefix("AztecAddon", "Failed to set slot: " + e.getMessage());
-        }
     }
 
     public enum PhaseMode {
