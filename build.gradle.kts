@@ -1,9 +1,10 @@
 plugins {
-    id("fabric-loom") version "1.11-SNAPSHOT"
+    id("fabric-loom") version "1.14.10" // ✅ Actualizado de 1.11-SNAPSHOT a 1.14.10
+    id("maven-publish") // Añadido por buenas prácticas, aunque no es estrictamente necesario si no publicas
 }
 
 base {
-    archivesName = properties["archives_base_name"] as String
+    archivesName.set(properties["archives_base_name"] as String)
     version = properties["mod_version"] as String
     group = properties["maven_group"] as String
 }

@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "id": "addon-template",
+  "id": "aztecaddon",
   "version": "${version}",
   "name": "AztecAddon",
-  "description": "An addon template for Meteor Client addons.",
+  "description": "Tu segundo cerebro en anarchy. Memoria, seguridad pasiva y utilidades para servidores como 2b2t y 9b9t.",
   "authors": [
     "Desaparecido, AztecDev"
   ],
   "contact": {
-    "sources": "https://github.com/MeteorDevelopment/meteor-addon-template"
+    "sources": "https://github.com/TuUsuario/AztecAddon"
   },
-  "icon": "assets/template/icon.png",
+  "icon": "assets/aztecaddon/icon.png",
   "environment": "client",
   "entrypoints": {
     "meteor": [
@@ -18,14 +18,16 @@
     ]
   },
   "mixins": [
-    "addon-template.mixins.json"
+    "aztecaddon.mixins.json"
   ],
   "custom": {
-    "meteor-client:color": "225,25,25"
+    "meteor-client:color": "0,168,107"
   },
   "depends": {
     "java": ">=21",
-    "minecraft": ["${mc_version}", "1.21.7", "1.21.6"],
+    "minecraft": [
+      "1.21.11"
+    ],
     "meteor-client": "*"
   }
 }

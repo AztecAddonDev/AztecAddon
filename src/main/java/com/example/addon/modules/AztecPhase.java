@@ -18,7 +18,6 @@ public class AztecPhase extends Module {
     private final SettingGroup sgTP = settings.createGroup("TP Mode");
     private final SettingGroup sgPearl = settings.createGroup("Pearl Mode");
 
-
     private final Setting<PhaseMode> mode = sgGeneral.add(new EnumSetting.Builder<PhaseMode>()
         .name("mode")
         .description("Phase mode.")
@@ -43,7 +42,6 @@ public class AztecPhase extends Module {
         .build()
     );
 
-
     private final Setting<Integer> tpDistance = sgTP.add(new IntSetting.Builder()
         .name("tp-distance")
         .description("Distance to teleport in blocks.")
@@ -54,7 +52,6 @@ public class AztecPhase extends Module {
         .visible(() -> mode.get() == PhaseMode.TP)
         .build()
     );
-
 
     private final Setting<Double> pitch = sgPearl.add(new DoubleSetting.Builder()
         .name("pitch")
@@ -67,8 +64,8 @@ public class AztecPhase extends Module {
         .build()
     );
 
-
     private int cooldownLeft;
+    private int pearlSwapDelay = 0; // ✅ FIX: Delay después de swap
 
     public AztecPhase() {
         super(AddonTemplate.CATEGORY, "aztec-phase", "Phase through blocks using TP or Pearl.");
@@ -77,6 +74,7 @@ public class AztecPhase extends Module {
     @Override
     public void onActivate() {
         cooldownLeft = 0;
+        pearlSwapDelay = 0;
     }
 
     @EventHandler
@@ -88,15 +86,14 @@ public class AztecPhase extends Module {
             return;
         }
 
-
-        if (mc.player.isCrawling()) return;
-
-
-        if (onlyCrawling.get() && !mc.player.isCrawling()) return;
-
+        // ✅ FIX: Lógica corregida de crawling
+        if (onlyCrawling.get()) {
+            if (!mc.player.isCrawling()) return; // Solo phase si está crawling
+        } else {
+            if (mc.player.isCrawling()) return; // No phase si está crawling (modo normal)
+        }
 
         if (!mc.player.horizontalCollision) return;
-
 
         switch (mode.get()) {
             case TP -> doTP();
@@ -111,13 +108,11 @@ public class AztecPhase extends Module {
         double x = mc.player.getX() + dir.getOffsetX() * tpDistance.get();
         double z = mc.player.getZ() + dir.getOffsetZ() * tpDistance.get();
 
-
         BlockPos destPos = BlockPos.ofFloored(x, mc.player.getY(), z);
         if (!mc.world.getBlockState(destPos).isAir()) {
-
             destPos = destPos.up();
             if (!mc.world.getBlockState(destPos).isAir()) {
-                return; 
+                return;
             }
             mc.player.setPos(x, mc.player.getY() + 1, z);
             return;
@@ -129,19 +124,34 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            ChatUtils.sendPlayerMsg("§c[AztecPhase] No pearls in hotbar!");
+            // ✅ FIX: Eliminado símbolo § para evitar "Illegal characters"
+            ChatUtils.sendPlayerMsg("[AztecPhase] No pearls in hotbar!");
             return;
         }
 
+        // ✅ FIX: Si ya tenemos la perla en la mano, úsala directamente
+        if (mc.player.getInventory().getSelectedSlot() == pearl.slot()) {
+            throwPearl();
+            return;
+        }
+
+        // Si no, hacer swap y esperar un tick
         InvUtils.swap(pearl.slot(), true);
+        pearlSwapDelay = 1;
+    }
 
-
+    private void throwPearl() {
         Direction collisionDir = getCollisionDirection();
         float yaw = getYawFromDirection(collisionDir);
 
-        Rotations.rotate(yaw, pitch.get(), () -> {
-            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
-            toggle(); 
+        Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
+            // ✅ FIX: Verificar que realmente tenemos la perla antes de usarla
+            if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
+                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+                toggle();
+            } else {
+                ChatUtils.sendPlayerMsg("[AztecPhase] Failed to throw pearl!");
+            }
         });
     }
 
