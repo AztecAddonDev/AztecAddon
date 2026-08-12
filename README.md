@@ -1,127 +1,90 @@
-# Meteor Addon Template
+# AztecAddon
 
-A template to allow easy usage of the Meteor Addon API.
+A Minecraft addon for [Meteor Client](https://github.com/MeteorDevelopment/meteor-client), focused on useful, configurable and unique features for anarchy and vanilla Minecraft environments.
 
-### How to use
+AztecAddon is independently developed from scratch and is not a fork of another addon. It uses the Meteor Client API and the Fabric ecosystem.
 
-#### Use GitHub Template (Recommended)
+## Features
 
-- Click the green `Use this template` button in the top right corner of this page.  
-  This will create a new repository with this template and a clean history.
+AztecAddon currently includes features across several categories:
 
-#### Clone Manually
+* Quality of Life
+* Utility
+* Movement
+* Render
+* HUD
+* Automation
+* Miscellaneous
+* Custom Mixins
 
-- Alternatively, clone this repository using these commands for a clean history:
-  ```bash
-  git clone --depth 1 https://github.com/MeteorDevelopment/meteor-addon-template your-addon-name
-  cd your-addon-name
-  rm -rf .git
-  git init
-  git add .
-  git commit -m "Initial commit from template"
-  ```
+The goal of AztecAddon is to provide configurable features that are useful for anarchy servers and vanilla Minecraft while avoiding unnecessary duplication of features already available in Meteor Client.
 
-#### Development
+## Installation
 
-- Use this template to add custom modules, commands, HUDs, and other features to Meteor Client.
-- To test, run the `Minecraft Client` configuration in your IDE.
-  This will start a Minecraft client with the Meteor Client mod and your addon loaded.
-- To build, run the gradle `build` task. This will create a JAR file in the `build/libs` folder.
-    - Move the JAR file to the `mods` folder of your Minecraft installation, alongside the Meteor Client mod and run the
-      game.
+1. Install a compatible version of Minecraft.
+2. Install [Fabric Loader](https://fabricmc.net/).
+3. Install the required version of [Meteor Client](https://meteorclient.com/).
+4. Download the latest AztecAddon release.
+5. Place the AztecAddon `.jar` file into your Minecraft `mods` folder.
+6. Launch Minecraft with Fabric, Meteor Client and AztecAddon installed.
 
-### Updating to newer Minecraft versions
+## Building
 
-To update this template to a newer Minecraft version, follow these steps:
+Clone the repository:
 
-1. Ensure a Meteor Client snapshot is available for the new Minecraft version.
-2. Update `gradle.properties`:
-    - Set `minecraft_version`, `yarn_mappings` and `loader_version` to the new version.
-    - Update any additional dependencies accordingly.
-3. Update Loom:
-    - Change the `loom_version` in `build.gradle.kts` to the latest version compatible with the new Minecraft version.
-4. Update the Gradle wrapper:
-    - You can find the latest Gradle version [here](https://gradle.org/releases/).
-    - Run the `./gradlew wrapper --gradle-version <version>; ./gradlew wrapper` command to update the wrapper script.
-5. Update your source code:
-    - Adjust for Minecraft or Yarn mapping changes: method names, imports, mixins, etc.
-    - Check for Meteor Client API changes that may affect your addon by comparing against the
-      [master branch](https://github.com/MeteorDevelopment/meteor-client/tree/master).
-6. Build and test:
-    - Run the gradle `build` task.
-    - Confirm the build succeeds and your addon works with the new Minecraft version.
-
-### Project structure
-
-```text
-.
-│── .github
-│   ╰── workflows
-│       │── dev_build.yml
-│       ╰── pull_request.yml
-│── gradle
-│   ╰── wrapper
-│       │── gradle-wrapper.jar
-│       ╰── gradle-wrapper.properties
-│── src
-│   ╰── main
-│       │── java
-│       │   ╰── com
-│       │       ╰── example
-│       │           ╰── addon
-│       │               │── commands
-│       │               │   ╰── CommandExample
-│       │               │── hud
-│       │               │   ╰── HudExample
-│       │               │── modules
-│       │               │   ╰── ModuleExample
-│       │               ╰── AddonTemplate
-│       ╰── resources
-│           │── assets
-│           │   ╰── template
-│           │       ╰── icon.png
-│           │── addon-template.mixins.json
-│           ╰── fabric.mod.json
-│── .editorconfig
-│── .gitignore
-│── build.gradle.kts
-│── gradle.properties
-│── gradlew
-│── gradlew.bat
-│── LICENSE
-│── README.md
-╰── settings.gradle.kts
+```bash
+git clone https://github.com/AztecAddonDev/AztecAddon.git
+cd AztecAddon-Source
 ```
 
-This is the default project structure. Each folder/file has a specific purpose.  
-Here is a brief explanation of the ones you might need to modify:
+Build the addon using Gradle:
 
-- `.github/workflows`: Contains the GitHub Actions configuration files.
-- `gradle`: Contains the Gradle wrapper files.  
-  Edit the `gradle.properties` file to change the version of the Gradle wrapper.
-- `src/main/java/com/example/addon`: Contains the main class of the addon.  
-  Here you can register your custom commands, modules, and HUDs.  
-  Edit the `getPackage` method to reflect the package of your addon.
-- `src/main/resources`: Contains the resources of the addon.
-    - `assets`: Contains the assets of the addon.  
-      You can add your own assets here, separated in subfolders.
-        - `template`: Contains the assets of the template.  
-          You can replace the `icon.png` file with your own addon icon.  
-          Also, rename this folder to reflect the name of your addon.
-    - `addon-template.mixins.json`: Contains the Mixin configuration for the addon.  
-      You can add your own mixins in the `client` array.
-    - `fabric.mod.json`: Contains the metadata of the addon.  
-      Edit the various fields to reflect the metadata of your addon.
-- `build.gradle.kts`: Contains the Gradle build script.  
-  You can manage the dependencies of the addon here.  
-  Remember to keep the `fabric-loom` version up-to-date.
-- `gradle.properties.kts`: Contains the properties of the Gradle build.  
-  These will be used by the build script.
-- `LICENSE`: Contains the license of the addon.  
-  You can edit this file to change the license of your addon.
-- `README.md`: Contains the documentation of the addon.  
-  You can edit this file to reflect the documentation of your addon, and showcase its features.
+```bash
+./gradlew build
+```
+
+The compiled `.jar` will be available in:
+
+```text
+build/libs/
+```
+
+## Compatibility
+
+AztecAddon is developed for specific Minecraft, Fabric and Meteor Client versions.
+
+Always make sure that your Minecraft, Fabric Loader, Fabric API, Meteor Client and AztecAddon versions are compatible with each other.
+
+## Discord
+
+Join the AztecAddon Discord community:
+
+[Join the Discord](https://discord.gg/RYNY6vk5Rc)
+
+## Credits
+
+### Developer
+
+* **AztecDeveloper** — Creator and main developer of AztecAddon.
+
+### Inspiration & References
+
+* **koodadevs-creator / KoodaAddon** — The `ChatBot` module served as inspiration for AztecBotAz. Parts of the original implementation were also used as a reference during development and testing.
+
+    * [Original ChatBot.java](https://github.com/koodadevs-creator/KoodaAddon-/blob/main/src/main/java/pwn/noobs/trouserstreak/modules/ChatBot.java)
+
+AztecAddon is not a fork of KoodaAddon. AztecBotAz was independently developed for AztecAddon, with the original project acknowledged as an inspiration and development reference.
+
+Thank you to **koodadevs-creator** for the original idea and implementation that helped during development.
 
 ## License
 
-This template is available under the CC0 license. Feel free to use it for your own projects.
+AztecAddon is distributed under the license included in this repository's `LICENSE` file.
+
+See `LICENSE` for the complete license terms.
+
+## Disclaimer
+
+AztecAddon is an independent third-party addon and is not affiliated with or endorsed by Meteor Development.
+
+Minecraft is a trademark of Mojang Studios. AztecAddon is not affiliated with Mojang Studios or Microsoft.
