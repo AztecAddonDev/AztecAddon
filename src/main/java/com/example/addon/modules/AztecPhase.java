@@ -64,9 +64,10 @@ public class AztecPhase extends Module {
 
     private final Setting<Boolean> swapBack = sgPearl.add(new BoolSetting.Builder()
         .name("swap-back")
-        .description("Swap back to original slot after throwing pearl.")
+        .description("Swap back to original slot after throwing pearl. (Only for Normal mode)")
         .defaultValue(true)
-        .visible(() -> mode.get() == PhaseMode.Pearl)
+        // ✅ Solo visible si estamos en Pearl Mode Y el switch es Normal
+        .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
         .build()
     );
 
@@ -147,38 +148,35 @@ public class AztecPhase extends Module {
         int pearlSlot = pearl.slot();
         int currentSlot = mc.player.getInventory().getSelectedSlot();
 
-        if (swapBack.get()) {
-            originalSlot = currentSlot;
-        }
-
         if (switchMode.get() == SwitchMode.Silent) {
             // SILENT MODE (Spoof): El cliente NO cambia de slot visualmente.
             // Solo informamos al servidor que "seleccionamos" el slot de la perla.
             mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(pearlSlot));
-            throwPearlSilent();
+            throwPearlSilent(currentSlot);
         } else {
             // NORMAL MODE: Swap visible con animación en el cliente Y packet al servidor.
             if (currentSlot != pearlSlot) {
                 InvUtils.swap(pearlSlot, true);
             }
+            if (swapBack.get()) {
+                originalSlot = currentSlot;
+            }
             throwPearlNormal();
         }
     }
 
-    private void throwPearlSilent() {
+    private void throwPearlSilent(int clientSlot) {
         Direction collisionDir = getCollisionDirection();
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
-            // El cliente interactúa con la mano principal.
-            // El cliente ve su item original (ej. espada), pero el servidor cree que es la perla.
+            // El cliente interactúa. El servidor procesa la perla.
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
 
-            // Restaurar slot original SOLO en el servidor (el cliente nunca lo cambió)
-            if (swapBack.get() && originalSlot != -1) {
-                mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(originalSlot));
-                originalSlot = -1;
-            }
+            // OBLIGATORIO en Silent: Restaurar el slot en el servidor automáticamente.
+            // Si no lo hacemos, el servidor pensará que seguimos con la perla en la mano
+            // y nuestros siguientes ataques/usos con el item real del cliente fallarán (desync).
+            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(clientSlot));
 
             toggle();
         });
