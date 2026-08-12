@@ -56,7 +56,7 @@ public class AztecPhase extends Module {
 
     private final Setting<SwitchMode> switchMode = sgPearl.add(new EnumSetting.Builder<SwitchMode>()
         .name("switch-mode")
-        .description("How to switch to the pearl. Silent = packet only, Normal = visible swap.")
+        .description("How to switch to the pearl. Silent = packet spoof (no visual change), Normal = visible swap.")
         .defaultValue(SwitchMode.Silent)
         .visible(() -> mode.get() == PhaseMode.Pearl)
         .build()
@@ -140,7 +140,6 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            // LOG interno con prefix [AztecAddon] - NO envía al servidor
             ChatUtils.warningPrefix("AztecAddon", "No pearls in hotbar!");
             return;
         }
@@ -153,13 +152,12 @@ public class AztecPhase extends Module {
         }
 
         if (switchMode.get() == SwitchMode.Silent) {
-            // SILENT MODE: Solo packets, sin animación visual
-            setSelectedSlot(pearlSlot);
+            // SILENT MODE (Spoof): El cliente NO cambia de slot visualmente.
+            // Solo informamos al servidor que "seleccionamos" el slot de la perla.
             mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(pearlSlot));
-
             throwPearlSilent();
         } else {
-            // NORMAL MODE: Swap visible con animación
+            // NORMAL MODE: Swap visible con animación en el cliente Y packet al servidor.
             if (currentSlot != pearlSlot) {
                 InvUtils.swap(pearlSlot, true);
             }
@@ -172,11 +170,12 @@ public class AztecPhase extends Module {
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
+            // El cliente interactúa con la mano principal.
+            // El cliente ve su item original (ej. espada), pero el servidor cree que es la perla.
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
 
-            // Restaurar slot original en el servidor
+            // Restaurar slot original SOLO en el servidor (el cliente nunca lo cambió)
             if (swapBack.get() && originalSlot != -1) {
-                setSelectedSlot(originalSlot);
                 mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(originalSlot));
                 originalSlot = -1;
             }
@@ -228,20 +227,6 @@ public class AztecPhase extends Module {
             case EAST -> -90f;
             default -> mc.player.getYaw();
         };
-    }
-
-    /**
-     * Cambia el slot seleccionado del jugador usando reflection.
-     * Necesario porque selectedSlot es privado en PlayerInventory desde 1.21+
-     */
-    private void setSelectedSlot(int slot) {
-        try {
-            var field = mc.player.getInventory().getClass().getDeclaredField("selectedSlot");
-            field.setAccessible(true);
-            field.setInt(mc.player.getInventory(), slot);
-        } catch (Exception e) {
-            ChatUtils.warningPrefix("AztecAddon", "Failed to set slot: " + e.getMessage());
-        }
     }
 
     public enum PhaseMode {
