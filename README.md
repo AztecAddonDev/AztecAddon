@@ -8,14 +8,14 @@ AztecAddon is independently developed from scratch and is not a fork of another 
 
 AztecAddon currently includes features across several categories:
 
-* Quality of Life
-* Utility
-* Movement
-* Render
-* HUD
-* Automation
-* Miscellaneous
-* Custom Mixins
+- Quality of Life
+- Utility
+- Movement
+- Render
+- HUD
+- Automation
+- Miscellaneous
+- Custom Mixins
 
 The goal of AztecAddon is to provide configurable features that are useful for anarchy servers and vanilla Minecraft while avoiding unnecessary duplication of features already available in Meteor Client.
 
@@ -35,18 +35,12 @@ Clone the repository:
 ```bash
 git clone https://github.com/AztecAddonDev/AztecAddon.git
 cd AztecAddon-Source
-```
 
 Build the addon using Gradle:
-
-```bash
 ./gradlew build
-```
 
-The compiled `.jar` will be available in:
-
-```text
-build/libs/
+The compiled .jar will be available in:
+build/libs/.
 ```
 
 ## Compatibility
@@ -57,21 +51,21 @@ Always make sure that your Minecraft, Fabric Loader, Fabric API, Meteor Client a
 
 ## Discord
 
-Join the AztecAddon Discord community:
-
 [Join the Discord](https://discord.gg/RYNY6vk5Rc)
 
 ## Credits
 
 ### Developer
 
-* **AztecDeveloper** — Creator and main developer of AztecAddon.
+- **AztecDeveloper** — Official developer and representative of AztecAddon.
+- **Desaparecido** — Personal Minecraft and Discord identity of the developer.
+
+> **Note:** Desaparecido and AztecDeveloper are two identities used by the same person. Desaparecido represents the personal gaming identity, while AztecDeveloper represents the development and official project side of AztecAddon.
 
 ### Inspiration & References
 
-* **koodadevs-creator / KoodaAddon** — The `ChatBot` module served as inspiration for AztecBotAz. Parts of the original implementation were also used as a reference during development and testing.
-
-    * [Original ChatBot.java](https://github.com/koodadevs-creator/KoodaAddon-/blob/main/src/main/java/pwn/noobs/trouserstreak/modules/ChatBot.java)
+- **koodadevs-creator / KoodaAddon** — The `ChatBot` module served as inspiration for AztecBotAz. Parts of the original implementation were also used as a reference during development and testing.
+    - [Original ChatBot.java](https://github.com/koodadevs-creator/KoodaAddon-/blob/main/src/main/java/pwn/noobs/trouserstreak/modules/ChatBot.java)
 
 AztecAddon is not a fork of KoodaAddon. AztecBotAz was independently developed for AztecAddon, with the original project acknowledged as an inspiration and development reference.
 
@@ -86,5 +80,3 @@ See `LICENSE` for the complete license terms.
 ## Disclaimer
 
 AztecAddon is an independent third-party addon and is not affiliated with or endorsed by Meteor Development.
-
-Minecraft is a trademark of Mojang Studios. AztecAddon is not affiliated with Mojang Studios or Microsoft.
