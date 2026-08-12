@@ -53,6 +53,22 @@ public class AztecPhase extends Module {
         .build()
     );
 
+    private final Setting<SwitchMode> switchMode = sgPearl.add(new EnumSetting.Builder<SwitchMode>()
+        .name("switch-mode")
+        .description("How to switch to the pearl. Silent = no animation, Normal = visible swap.")
+        .defaultValue(SwitchMode.Silent)
+        .visible(() -> mode.get() == PhaseMode.Pearl)
+        .build()
+    );
+
+    private final Setting<Boolean> swapBack = sgPearl.add(new BoolSetting.Builder()
+        .name("swap-back")
+        .description("Swap back to original slot after throwing pearl.")
+        .defaultValue(true)
+        .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
+        .build()
+    );
+
     private final Setting<Double> pitch = sgPearl.add(new DoubleSetting.Builder()
         .name("pitch")
         .description("Pitch to throw the pearl. Negative = down, Positive = up.")
@@ -65,7 +81,7 @@ public class AztecPhase extends Module {
     );
 
     private int cooldownLeft;
-    private int pearlSwapDelay = 0; // ✅ FIX: Delay después de swap
+    private int originalSlot = -1;
 
     public AztecPhase() {
         super(AddonTemplate.CATEGORY, "aztec-phase", "Phase through blocks using TP or Pearl.");
@@ -74,7 +90,7 @@ public class AztecPhase extends Module {
     @Override
     public void onActivate() {
         cooldownLeft = 0;
-        pearlSwapDelay = 0;
+        originalSlot = -1;
     }
 
     @EventHandler
@@ -86,11 +102,10 @@ public class AztecPhase extends Module {
             return;
         }
 
-        // ✅ FIX: Lógica corregida de crawling
         if (onlyCrawling.get()) {
-            if (!mc.player.isCrawling()) return; // Solo phase si está crawling
+            if (!mc.player.isCrawling()) return;
         } else {
-            if (mc.player.isCrawling()) return; // No phase si está crawling (modo normal)
+            if (mc.player.isCrawling()) return;
         }
 
         if (!mc.player.horizontalCollision) return;
@@ -124,20 +139,32 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            // ✅ FIX: Eliminado símbolo § para evitar "Illegal characters"
             ChatUtils.sendPlayerMsg("[AztecPhase] No pearls in hotbar!");
             return;
         }
 
-        // ✅ FIX: Si ya tenemos la perla en la mano, úsala directamente
+        if (swapBack.get() && switchMode.get() == SwitchMode.Normal) {
+            originalSlot = mc.player.getInventory().getSelectedSlot();
+        }
+
         if (mc.player.getInventory().getSelectedSlot() == pearl.slot()) {
             throwPearl();
             return;
         }
 
-        // Si no, hacer swap y esperar un tick
-        InvUtils.swap(pearl.slot(), true);
-        pearlSwapDelay = 1;
+        if (switchMode.get() == SwitchMode.Silent) {
+            InvUtils.swap(pearl.slot(), false);
+            throwPearl();
+        } else {
+            InvUtils.swap(pearl.slot(), true);
+            mc.execute(() -> {
+                throwPearl();
+                if (swapBack.get() && originalSlot != -1) {
+                    InvUtils.swap(originalSlot, true);
+                    originalSlot = -1;
+                }
+            });
+        }
     }
 
     private void throwPearl() {
@@ -145,7 +172,6 @@ public class AztecPhase extends Module {
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
-            // ✅ FIX: Verificar que realmente tenemos la perla antes de usarla
             if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
                 toggle();
@@ -183,5 +209,10 @@ public class AztecPhase extends Module {
     public enum PhaseMode {
         TP,
         Pearl
+    }
+
+    public enum SwitchMode {
+        Silent,
+        Normal
     }
 }

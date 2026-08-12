@@ -118,7 +118,6 @@ public class AztecBookBan extends Module {
     @Override
     public void onDeactivate() {
         if (booksProcessed > 0) {
-            // ✅ FIX: Eliminado §a
             ChatUtils.sendPlayerMsg("[AztecBookBan] Processed " + booksProcessed + " books.");
         }
     }
@@ -140,7 +139,6 @@ public class AztecBookBan extends Module {
 
         var book = InvUtils.find(Items.WRITABLE_BOOK);
         if (!book.found()) {
-            // ✅ FIX: Eliminado §c
             ChatUtils.sendPlayerMsg("[AztecBookBan] No more writable books found.");
             toggle();
             return;
