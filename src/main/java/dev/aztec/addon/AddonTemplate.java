@@ -5,7 +5,6 @@ import dev.aztec.addon.hud.AztecWatermarkAz;
 import dev.aztec.addon.hud.HudExample;
 import dev.aztec.addon.modules.*;
 import com.mojang.logging.LogUtils;
-import dev.aztec.addon.modules.*;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.commands.Commands;
@@ -30,7 +29,7 @@ public class AddonTemplate extends MeteorAddon {
         Modules.get().add(new AutoReplyAz());
         Modules.get().add(new AztecWeebHookAz());
         Modules.get().add(new EmergencyActionAz());
-                Modules.get().add(new AztecBotAz());
+        Modules.get().add(new AztecBotAz());
         Modules.get().add(new PacketLoggerAz());
         Modules.get().add(new AztecAnnouncer());
         Modules.get().add(new AztecSurround());
@@ -57,7 +56,9 @@ public class AddonTemplate extends MeteorAddon {
 
     @Override
     public String getPackage() {
-        return "com.example.addon";
+        // ✅ CRÍTICO: Debe coincidir con el package base de tus clases
+        // Tus módulos están en "dev.aztec.addon.modules", así que el base es "dev.aztec.addon"
+        return "dev.aztec.addon";
     }
 
     @Override

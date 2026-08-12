@@ -33,7 +33,8 @@ public class AztecWatermarkAz extends HudElement {
         .build()
     );
 
-    private static final Identifier ICON_TEXTURE = Identifier.of("aztecaddon", "icon.png");
+    // ✅ Ruta correcta: assets/aztecaddon/textures/icon.png
+    private static final Identifier ICON_TEXTURE = Identifier.of("aztecaddon", "textures/icon.png");
 
     public static final HudElementInfo<AztecWatermarkAz> INFO = new HudElementInfo<>(
         AddonTemplate.HUD_GROUP,
@@ -61,7 +62,17 @@ public class AztecWatermarkAz extends HudElement {
                 Color.WHITE
             );
         } catch (Exception e) {
+            // Fallback: cuadro verde con texto
             renderer.quad(x, y, w, h, new Color(0, 168, 107, 255));
+
+            String text = "Aztec";
+            renderer.text(
+                text,
+                x + (w / 2) - (renderer.textWidth(text) / 2),
+                y + (h / 2) - (renderer.textHeight() / 2),
+                Color.WHITE,
+                true
+            );
         }
     }
 }
