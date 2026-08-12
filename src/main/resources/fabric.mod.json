@@ -5,7 +5,7 @@
   "name": "AztecAddon",
   "description": "An addon template for Meteor Client addons.",
   "authors": [
-    "Desaparecido"
+    "Desaparecido, AztecDev"
   ],
   "contact": {
     "sources": "https://github.com/MeteorDevelopment/meteor-addon-template"
