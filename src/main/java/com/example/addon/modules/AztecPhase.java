@@ -18,7 +18,6 @@ public class AztecPhase extends Module {
     private final SettingGroup sgTP = settings.createGroup("TP Mode");
     private final SettingGroup sgPearl = settings.createGroup("Pearl Mode");
 
-
     private final Setting<PhaseMode> mode = sgGeneral.add(new EnumSetting.Builder<PhaseMode>()
         .name("mode")
         .description("Phase mode.")
@@ -43,7 +42,6 @@ public class AztecPhase extends Module {
         .build()
     );
 
-
     private final Setting<Integer> tpDistance = sgTP.add(new IntSetting.Builder()
         .name("tp-distance")
         .description("Distance to teleport in blocks.")
@@ -55,6 +53,21 @@ public class AztecPhase extends Module {
         .build()
     );
 
+    private final Setting<SwitchMode> switchMode = sgPearl.add(new EnumSetting.Builder<SwitchMode>()
+        .name("switch-mode")
+        .description("How to switch to the pearl. Silent = no animation, Normal = visible swap.")
+        .defaultValue(SwitchMode.Silent)
+        .visible(() -> mode.get() == PhaseMode.Pearl)
+        .build()
+    );
+
+    private final Setting<Boolean> swapBack = sgPearl.add(new BoolSetting.Builder()
+        .name("swap-back")
+        .description("Swap back to original slot after throwing pearl.")
+        .defaultValue(true)
+        .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
+        .build()
+    );
 
     private final Setting<Double> pitch = sgPearl.add(new DoubleSetting.Builder()
         .name("pitch")
@@ -67,8 +80,8 @@ public class AztecPhase extends Module {
         .build()
     );
 
-
     private int cooldownLeft;
+    private int originalSlot = -1;
 
     public AztecPhase() {
         super(AddonTemplate.CATEGORY, "aztec-phase", "Phase through blocks using TP or Pearl.");
@@ -77,6 +90,7 @@ public class AztecPhase extends Module {
     @Override
     public void onActivate() {
         cooldownLeft = 0;
+        originalSlot = -1;
     }
 
     @EventHandler
@@ -88,15 +102,13 @@ public class AztecPhase extends Module {
             return;
         }
 
-
-        if (mc.player.isCrawling()) return;
-
-
-        if (onlyCrawling.get() && !mc.player.isCrawling()) return;
-
+        if (onlyCrawling.get()) {
+            if (!mc.player.isCrawling()) return;
+        } else {
+            if (mc.player.isCrawling()) return;
+        }
 
         if (!mc.player.horizontalCollision) return;
-
 
         switch (mode.get()) {
             case TP -> doTP();
@@ -111,13 +123,11 @@ public class AztecPhase extends Module {
         double x = mc.player.getX() + dir.getOffsetX() * tpDistance.get();
         double z = mc.player.getZ() + dir.getOffsetZ() * tpDistance.get();
 
-
         BlockPos destPos = BlockPos.ofFloored(x, mc.player.getY(), z);
         if (!mc.world.getBlockState(destPos).isAir()) {
-
             destPos = destPos.up();
             if (!mc.world.getBlockState(destPos).isAir()) {
-                return; 
+                return;
             }
             mc.player.setPos(x, mc.player.getY() + 1, z);
             return;
@@ -129,19 +139,45 @@ public class AztecPhase extends Module {
     private void doPearl() {
         var pearl = InvUtils.findInHotbar(Items.ENDER_PEARL);
         if (!pearl.found()) {
-            ChatUtils.sendPlayerMsg("§c[AztecPhase] No pearls in hotbar!");
+            ChatUtils.sendPlayerMsg("[AztecPhase] No pearls in hotbar!");
             return;
         }
 
-        InvUtils.swap(pearl.slot(), true);
+        if (swapBack.get() && switchMode.get() == SwitchMode.Normal) {
+            originalSlot = mc.player.getInventory().getSelectedSlot();
+        }
 
+        if (mc.player.getInventory().getSelectedSlot() == pearl.slot()) {
+            throwPearl();
+            return;
+        }
 
+        if (switchMode.get() == SwitchMode.Silent) {
+            InvUtils.swap(pearl.slot(), false);
+            throwPearl();
+        } else {
+            InvUtils.swap(pearl.slot(), true);
+            mc.execute(() -> {
+                throwPearl();
+                if (swapBack.get() && originalSlot != -1) {
+                    InvUtils.swap(originalSlot, true);
+                    originalSlot = -1;
+                }
+            });
+        }
+    }
+
+    private void throwPearl() {
         Direction collisionDir = getCollisionDirection();
         float yaw = getYawFromDirection(collisionDir);
 
-        Rotations.rotate(yaw, pitch.get(), () -> {
-            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
-            toggle(); 
+        Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
+            if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
+                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+                toggle();
+            } else {
+                ChatUtils.sendPlayerMsg("[AztecPhase] Failed to throw pearl!");
+            }
         });
     }
 
@@ -173,5 +209,10 @@ public class AztecPhase extends Module {
     public enum PhaseMode {
         TP,
         Pearl
+    }
+
+    public enum SwitchMode {
+        Silent,
+        Normal
     }
 }

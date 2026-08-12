@@ -8,11 +8,6 @@ import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.texture.TextureManager;
 import net.minecraft.util.Identifier;
 
 public class AztecWatermarkAz extends HudElement {
@@ -38,9 +33,14 @@ public class AztecWatermarkAz extends HudElement {
         .build()
     );
 
-    private static final Identifier ICON_TEXTURE = Identifier.of("template", "icon.png");
+    private static final Identifier ICON_TEXTURE = Identifier.of("aztecaddon", "icon.png");
 
-    public static final HudElementInfo<AztecWatermarkAz> INFO = new HudElementInfo<>(AddonTemplate.HUD_GROUP, "aztec-watermark-az", "Aztec watermark with icon.png.", AztecWatermarkAz::new);
+    public static final HudElementInfo<AztecWatermarkAz> INFO = new HudElementInfo<>(
+        AddonTemplate.HUD_GROUP,
+        "aztec-watermark-az",
+        "Aztec watermark with icon.",
+        AztecWatermarkAz::new
+    );
 
     public AztecWatermarkAz() {
         super(INFO);
@@ -53,12 +53,15 @@ public class AztecWatermarkAz extends HudElement {
 
         setSize(w, h);
 
-        // Try to render the texture
         try {
-            renderer.texture(ICON_TEXTURE, x, y, w, h, Color.WHITE);
+            renderer.texture(
+                ICON_TEXTURE,
+                x, y,
+                w, h,
+                Color.WHITE
+            );
         } catch (Exception e) {
-            // Fallback to green quad if texture fails
-            renderer.quad(x, y, w, h, Color.GREEN);
+            renderer.quad(x, y, w, h, new Color(0, 168, 107, 255));
         }
     }
 }

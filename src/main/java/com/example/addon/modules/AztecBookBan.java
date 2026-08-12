@@ -20,7 +20,6 @@ public class AztecBookBan extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgAntiBookBan = settings.createGroup("Anti-BookBan");
 
-
     private final Setting<Integer> pages = sgGeneral.add(new IntSetting.Builder()
         .name("pages")
         .description("Number of pages to fill per book.")
@@ -72,7 +71,6 @@ public class AztecBookBan extends Module {
         .build()
     );
 
-
     private final Setting<Boolean> antiBookBan = sgAntiBookBan.add(new BoolSetting.Builder()
         .name("anti-book-ban")
         .description("Prevents you from opening dangerous books.")
@@ -102,7 +100,6 @@ public class AztecBookBan extends Module {
         .build()
     );
 
-
     private int delayLeft;
     private int booksProcessed;
     private boolean shouldDrop;
@@ -121,14 +118,13 @@ public class AztecBookBan extends Module {
     @Override
     public void onDeactivate() {
         if (booksProcessed > 0) {
-            ChatUtils.sendPlayerMsg("§a[AztecBookBan] Processed " + booksProcessed + " books.");
+            ChatUtils.sendPlayerMsg("[AztecBookBan] Processed " + booksProcessed + " books.");
         }
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
-
 
         if (shouldDrop) {
             mc.player.dropSelectedItem(true);
@@ -141,21 +137,17 @@ public class AztecBookBan extends Module {
             return;
         }
 
-
         var book = InvUtils.find(Items.WRITABLE_BOOK);
         if (!book.found()) {
-            ChatUtils.sendPlayerMsg("§c[AztecBookBan] No more writable books found.");
+            ChatUtils.sendPlayerMsg("[AztecBookBan] No more writable books found.");
             toggle();
             return;
         }
 
-
         int selectedSlot = mc.player.getInventory().getSelectedSlot();
         InvUtils.move().from(book.slot()).to(selectedSlot);
 
-
         List<String> pageContents = generatePages();
-
 
         mc.getNetworkHandler().sendPacket(new BookUpdateC2SPacket(
             selectedSlot,
@@ -168,14 +160,11 @@ public class AztecBookBan extends Module {
         delayLeft = delay.get();
     }
 
-
-
     public boolean isAntiBookBanEnabled() {
         return isActive() && antiBookBan.get();
     }
 
     public boolean isDangerousBook(ItemStack stack) {
-
         var writableContent = stack.get(DataComponentTypes.WRITABLE_BOOK_CONTENT);
         if (writableContent != null) {
             var pagesList = writableContent.pages();
@@ -185,7 +174,6 @@ public class AztecBookBan extends Module {
             }
             return false;
         }
-
 
         var writtenContent = stack.get(DataComponentTypes.WRITTEN_BOOK_CONTENT);
         if (writtenContent != null) {
@@ -199,8 +187,6 @@ public class AztecBookBan extends Module {
 
         return false;
     }
-
-
 
     private List<String> generatePages() {
         List<String> pageContents = new ArrayList<>();
