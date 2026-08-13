@@ -40,6 +40,7 @@ public class AddonTemplate extends MeteorAddon {
         Modules.get().add(new AztecPhase());
         Modules.get().add(new AztecBookBan());
         Modules.get().add(new AztecPacketFly());
+        Modules.get().add(new MobSpawnESP());
 
         // Commands
         Commands.add(new CommandExample());
