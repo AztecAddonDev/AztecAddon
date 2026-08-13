@@ -5,7 +5,6 @@ import dev.aztec.addon.hud.AztecWatermarkAz;
 import dev.aztec.addon.hud.HudExample;
 import dev.aztec.addon.modules.*;
 import com.mojang.logging.LogUtils;
-import dev.aztec.addon.modules.*;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.commands.Commands;
@@ -18,26 +17,26 @@ import org.slf4j.Logger;
 public class AddonTemplate extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
     public static final Category CATEGORY = new Category("Aztec");
-    public static final HudGroup HUD_GROUP = new HudGroup("Example");
+    public static final HudGroup HUD_GROUP = new HudGroup("AztecAddon");
 
     @Override
     public void onInitialize() {
         LOG.info("Initializing AztecAddon");
 
-        // Modules
+        // Modules - Asegúrate de que TODOS estén aquí
         Modules.get().add(new ModuleExample());
         Modules.get().add(new AutoRespawnAz());
         Modules.get().add(new AutoReplyAz());
         Modules.get().add(new AztecWeebHookAz());
         Modules.get().add(new EmergencyActionAz());
-                Modules.get().add(new AztecBotAz());
+        Modules.get().add(new AztecBotAz());
         Modules.get().add(new PacketLoggerAz());
         Modules.get().add(new AztecAnnouncer());
         Modules.get().add(new AztecSurround());
         Modules.get().add(new AzCustomFov());
         Modules.get().add(new AutoTotemAz());
         Modules.get().add(new StashLogger());
-        Modules.get().add(new AztecBoatFly());
+        Modules.get().add(new AztecBoatFly());  // ⚠️ Este es el que está causando el crash
         Modules.get().add(new AztecPhase());
         Modules.get().add(new AztecBookBan());
         Modules.get().add(new AztecPacketFly());
@@ -57,11 +56,11 @@ public class AddonTemplate extends MeteorAddon {
 
     @Override
     public String getPackage() {
-        return "com.example.addon";
+        return "dev.aztec.addon";
     }
 
     @Override
     public GithubRepo getRepo() {
-        return new GithubRepo("MeteorDevelopment", "meteor-addon-template");
+        return new GithubRepo("AztecAddonDev", "AztecAddon");
     }
 }
