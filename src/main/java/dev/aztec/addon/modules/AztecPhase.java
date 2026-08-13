@@ -66,7 +66,6 @@ public class AztecPhase extends Module {
         .name("swap-back")
         .description("Swap back to original slot after throwing pearl. (Only for Normal mode)")
         .defaultValue(true)
-        // ✅ Solo visible si estamos en Pearl Mode Y el switch es Normal
         .visible(() -> mode.get() == PhaseMode.Pearl && switchMode.get() == SwitchMode.Normal)
         .build()
     );
@@ -121,21 +120,94 @@ public class AztecPhase extends Module {
     }
 
     private void doTP() {
-        Direction dir = mc.player.getHorizontalFacing();
-        double x = mc.player.getX() + dir.getOffsetX() * tpDistance.get();
-        double z = mc.player.getZ() + dir.getOffsetZ() * tpDistance.get();
+        BlockPos playerPos = mc.player.getBlockPos();
+        Direction facingDir = mc.player.getHorizontalFacing();
 
-        BlockPos destPos = BlockPos.ofFloored(x, mc.player.getY(), z);
-        if (!mc.world.getBlockState(destPos).isAir()) {
-            destPos = destPos.up();
-            if (!mc.world.getBlockState(destPos).isAir()) {
-                return;
+        BlockPos bestTarget = findPhaseTarget(playerPos, facingDir);
+
+        if (bestTarget == null) {
+            for (Direction dir : Direction.values()) {
+                if (dir.getAxis().isVertical()) continue;
+                if (dir == facingDir) continue;
+
+                BlockPos checkPos = playerPos.offset(dir);
+                if (!mc.world.getBlockState(checkPos).isAir()) {
+                    bestTarget = findPhaseTarget(playerPos, dir);
+                    if (bestTarget != null) break;
+                }
             }
-            mc.player.setPos(x, mc.player.getY() + 1, z);
+        }
+
+        if (bestTarget == null) {
+            double x = mc.player.getX() + facingDir.getOffsetX() * tpDistance.get();
+            double z = mc.player.getZ() + facingDir.getOffsetZ() * tpDistance.get();
+            mc.player.setPos(x, mc.player.getY(), z);
             return;
         }
 
-        mc.player.setPos(x, mc.player.getY(), z);
+
+        double targetX = bestTarget.getX() + 0.5;
+        double targetZ = bestTarget.getZ() + 0.5;
+        double targetY = bestTarget.getY();
+
+        mc.player.setPos(targetX, targetY, targetZ);
+    }
+
+    private BlockPos findPhaseTarget(BlockPos playerPos, Direction direction) {
+        int distance = tpDistance.get();
+
+        // Buscar espacio libre en la dirección especificada
+        for (int i = 1; i <= distance; i++) {
+            BlockPos checkPos = playerPos.offset(direction, i);
+
+            // Verificar si hay espacio suficiente (2 bloques de altura para el jugador)
+            if (isSpaceAvailable(checkPos)) {
+                return checkPos;
+            }
+
+            // Si el bloque en el nivel del jugador está sólido, intentar subir
+            if (!mc.world.getBlockState(checkPos).isAir() &&
+                isSpaceAvailable(checkPos.up())) {
+                return checkPos.up();
+            }
+        }
+
+        // Si no se encuentra espacio en línea recta, buscar en diagonales cercanas
+        for (int i = 1; i <= distance; i++) {
+            // Buscar en posiciones diagonales
+            for (Direction offset : getPerpendicularDirections(direction)) {
+                BlockPos diagonalPos = playerPos.offset(direction, i).offset(offset);
+
+                if (isSpaceAvailable(diagonalPos)) {
+                    return diagonalPos;
+                }
+
+                if (!mc.world.getBlockState(diagonalPos).isAir() &&
+                    isSpaceAvailable(diagonalPos.up())) {
+                    return diagonalPos.up();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isSpaceAvailable(BlockPos pos) {
+        // Verificar que el bloque y el de arriba estén libres
+        if (!mc.world.getBlockState(pos).isAir()) return false;
+        if (!mc.world.getBlockState(pos.up()).isAir()) return false;
+
+        // Verificar que el bloque de abajo sea sólido (para no caer al vacío)
+        BlockPos below = pos.down();
+        return !mc.world.getBlockState(below).isAir();
+    }
+
+    private Direction[] getPerpendicularDirections(Direction direction) {
+        return switch (direction) {
+            case NORTH, SOUTH -> new Direction[]{Direction.EAST, Direction.WEST};
+            case EAST, WEST -> new Direction[]{Direction.NORTH, Direction.SOUTH};
+            default -> new Direction[]{Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST};
+        };
     }
 
     private void doPearl() {
@@ -149,12 +221,9 @@ public class AztecPhase extends Module {
         int currentSlot = mc.player.getInventory().getSelectedSlot();
 
         if (switchMode.get() == SwitchMode.Silent) {
-            // SILENT MODE (Spoof): El cliente NO cambia de slot visualmente.
-            // Solo informamos al servidor que "seleccionamos" el slot de la perla.
             mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(pearlSlot));
             throwPearlSilent(currentSlot);
         } else {
-            // NORMAL MODE: Swap visible con animación en el cliente Y packet al servidor.
             if (currentSlot != pearlSlot) {
                 InvUtils.swap(pearlSlot, true);
             }
@@ -170,14 +239,8 @@ public class AztecPhase extends Module {
         float yaw = getYawFromDirection(collisionDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
-            // El cliente interactúa. El servidor procesa la perla.
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
-
-            // OBLIGATORIO en Silent: Restaurar el slot en el servidor automáticamente.
-            // Si no lo hacemos, el servidor pensará que seguimos con la perla en la mano
-            // y nuestros siguientes ataques/usos con el item real del cliente fallarán (desync).
             mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(clientSlot));
-
             toggle();
         });
     }
