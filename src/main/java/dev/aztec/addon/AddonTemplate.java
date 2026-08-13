@@ -3,7 +3,7 @@ package dev.aztec.addon;
 import dev.aztec.addon.commands.CommandExample;
 import dev.aztec.addon.hud.AztecWatermarkAz;
 import dev.aztec.addon.hud.HudExample;
-import com.example.addon.modules.*;
+import dev.aztec.addon.modules.*;
 import com.mojang.logging.LogUtils;
 import dev.aztec.addon.modules.*;
 import meteordevelopment.meteorclient.addons.GithubRepo;
