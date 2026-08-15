@@ -6,19 +6,27 @@ import net.minecraft.client.gui.screen.DeathScreen;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArgs;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(DeathScreen.class)
 public class DeathScreenMixin {
-    @ModifyArgs(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawCenteredTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/Text;III)V"))
-    private void modifyDeathMessage(Args args) {
+
+    @ModifyArg(
+        method = "<init>",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/screen/Screen;<init>(Lnet/minecraft/text/Text;)V"
+        ),
+        index = 0
+    )
+    private static Text modifyDeathMessage(Text originalTitle) {
         AutoRespawnAz autoRespawn = Modules.get().get(AutoRespawnAz.class);
         if (autoRespawn != null && autoRespawn.isActive()) {
             String customMessage = autoRespawn.deathMessage.get();
             if (customMessage != null && !customMessage.isEmpty()) {
-                args.set(1, Text.of(customMessage));
+                return Text.of(customMessage);
             }
         }
+        return originalTitle;
     }
 }

@@ -20,12 +20,14 @@ public class AutoTotemAz extends Module {
     private final SettingGroup sgHealth = this.settings.createGroup("Health Settings");
     private final SettingGroup sgTiming = this.settings.createGroup("Timing");
 
+
     private final Setting<Boolean> smartSwap = sgGeneral.add(new BoolSetting.Builder()
         .name("smart-swap")
         .description("Only swap totem when necessary (better for CPVP).")
         .defaultValue(true)
         .build()
     );
+
 
     private final Setting<Boolean> pauseInInventory = sgGeneral.add(new BoolSetting.Builder()
         .name("pause-in-inventory")
@@ -41,6 +43,7 @@ public class AutoTotemAz extends Module {
         .build()
     );
 
+
     private final Setting<Integer> healthThreshold = sgHealth.add(new IntSetting.Builder()
         .name("health-threshold")
         .description("Health percentage to swap totem at (0-100).")
@@ -50,6 +53,7 @@ public class AutoTotemAz extends Module {
         .sliderMax(100)
         .build()
     );
+
 
     private final Setting<Integer> swapDelay = sgTiming.add(new IntSetting.Builder()
         .name("swap-delay")
@@ -81,6 +85,7 @@ public class AutoTotemAz extends Module {
         .build()
     );
 
+
     private int tickCounter = 0;
     private int swapCooldown = 0;
     private boolean pendingSwap = false;
@@ -110,14 +115,17 @@ public class AutoTotemAz extends Module {
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
 
+
         if (shouldPause()) return;
 
         tickCounter++;
         if (tickCounter < checkInterval.get()) return;
         tickCounter = 0;
 
+
         if (swapCooldown > 0) swapCooldown--;
         if (postCooldown > 0) postCooldown--;
+
 
         if (pendingSwap && swapCooldown <= 0) {
             performSwap();
@@ -125,7 +133,9 @@ public class AutoTotemAz extends Module {
             return;
         }
 
+
         if (postCooldown > 0) return;
+
 
         if (shouldSwapTotem()) {
             if (swapDelay.get() > 0) {
@@ -137,28 +147,27 @@ public class AutoTotemAz extends Module {
         }
     }
 
-    @EventHandler
+       @EventHandler
     private void onPacketReceive(PacketEvent.Receive event) {
-        if (!(event.packet instanceof EntityStatusS2CPacket)) return;
+        if (event.packet instanceof EntityStatusS2CPacket packet) {
 
-        EntityStatusS2CPacket packet = (EntityStatusS2CPacket) event.packet;
-        if (packet.getStatus() == 35 && packet.getEntity(mc.world) == mc.player) {
-            performSwap();
+            if (packet.getStatus() == 35 && packet.getEntity(mc.world) == mc.player) {
+
+                performSwap();
+            }
         }
     }
 
     @EventHandler
     private void onOpenScreen(OpenScreenEvent event) {
-        // Resetear pending swap cuando se abre cualquier pantalla
+
         if (event.screen != null) {
             pendingSwap = false;
         }
     }
 
     private boolean shouldPause() {
-        if (mc.currentScreen == null) return false;
-
-        if (pauseInInventory.get() && !(mc.currentScreen instanceof GenericContainerScreen)) {
+        if (pauseInInventory.get() && mc.currentScreen != null && !(mc.currentScreen instanceof GenericContainerScreen)) {
             return true;
         }
         if (pauseInContainers.get() && mc.currentScreen instanceof GenericContainerScreen) {
@@ -170,10 +179,12 @@ public class AutoTotemAz extends Module {
     private boolean shouldSwapTotem() {
         if (mc.player == null) return false;
 
+
         ItemStack offhandItem = mc.player.getEquippedStack(EquipmentSlot.OFFHAND);
         if (offhandItem.getItem() == Items.TOTEM_OF_UNDYING) {
             return false;
         }
+
 
         if (smartSwap.get()) {
             int threshold = healthThreshold.get();
@@ -188,8 +199,10 @@ public class AutoTotemAz extends Module {
             }
         }
 
+
         FindItemResult totem = InvUtils.findInHotbar(Items.TOTEM_OF_UNDYING);
         if (!totem.found()) {
+
             totem = InvUtils.find(Items.TOTEM_OF_UNDYING);
         }
 
@@ -199,15 +212,20 @@ public class AutoTotemAz extends Module {
     private void performSwap() {
         if (mc.player == null || mc.world == null) return;
 
+
         FindItemResult totem = InvUtils.findInHotbar(Items.TOTEM_OF_UNDYING);
 
         if (!totem.found()) {
+
             totem = InvUtils.find(Items.TOTEM_OF_UNDYING);
         }
 
         if (!totem.found()) return;
 
+
+
         InvUtils.move().from(totem.slot()).toOffhand();
+
 
         postCooldown = postSwapCooldown.get();
     }

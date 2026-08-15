@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture; // ✅ FIX 1.21.11: Import necesario
 
 public class StashLogger extends Module {
     private final SettingGroup sgGeneral = settings.createGroup("General");
@@ -178,11 +179,14 @@ public class StashLogger extends Module {
         saveDatabase();
 
         if (sendToDiscord.get() && !webhookUrl.get().isEmpty()) {
-            byte[] screenshot = null;
             if (includeScreenshots.get()) {
-                screenshot = captureScreenshot();
+                // ✅ FIX 1.21.11: Usar CompletableFuture para esperar el screenshot
+                captureScreenshot().thenAccept(screenshot -> {
+                    sendToDiscordWebhook(record, screenshot);
+                });
+            } else {
+                sendToDiscordWebhook(record, null);
             }
-            sendToDiscordWebhook(record, screenshot);
         }
 
         info("Stash logged: " + nonEmptySlots + " items at " + playerPos.toShortString());
@@ -230,46 +234,54 @@ public class StashLogger extends Module {
         saveDatabase();
 
         if (sendToDiscord.get() && !webhookUrl.get().isEmpty()) {
-            byte[] screenshot = null;
             if (includeScreenshots.get()) {
-                screenshot = captureScreenshot();
+                // ✅ FIX 1.21.11: Usar CompletableFuture para esperar el screenshot
+                captureScreenshot().thenAccept(screenshot -> {
+                    sendToDiscordWebhook(record, screenshot);
+                });
+            } else {
+                sendToDiscordWebhook(record, null);
             }
-            sendToDiscordWebhook(record, screenshot);
         }
 
         info("Shulker logged: " + nonEmptySlots + " items at " + playerPos.toShortString());
     }
 
-    private byte[] captureScreenshot() {
-        try {
-            int width = mc.getWindow().getFramebufferWidth();
-            int height = mc.getWindow().getFramebufferHeight();
-            ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
+    private CompletableFuture<byte[]> captureScreenshot() {
+        CompletableFuture<byte[]> future = new CompletableFuture<>();
 
+        mc.execute(() -> {
+            try {
+                int width = mc.getWindow().getFramebufferWidth();
+                int height = mc.getWindow().getFramebufferHeight();
+                ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
 
-            GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
+                GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
-            byte[] pixels = new byte[buffer.remaining()];
-            buffer.get(pixels);
+                byte[] pixels = new byte[buffer.remaining()];
+                buffer.get(pixels);
 
-            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int i = (x + (height - y - 1) * width) * 4;
-                    int r = pixels[i] & 0xFF;
-                    int g = pixels[i + 1] & 0xFF;
-                    int b = pixels[i + 2] & 0xFF;
-                    img.setRGB(x, y, (r << 16) | (g << 8) | b);
+                BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int i = (x + (height - y - 1) * width) * 4;
+                        int r = pixels[i] & 0xFF;
+                        int g = pixels[i + 1] & 0xFF;
+                        int b = pixels[i + 2] & 0xFF;
+                        img.setRGB(x, y, (r << 16) | (g << 8) | b);
+                    }
                 }
-            }
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(img, "png", baos);
-            return baos.toByteArray();
-        } catch (Exception e) {
-            error("Failed to capture screenshot: " + e.getMessage());
-            return null;
-        }
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(img, "png", baos);
+                future.complete(baos.toByteArray());
+            } catch (Exception e) {
+                error("Failed to capture screenshot: " + e.getMessage());
+                future.complete(null);
+            }
+        });
+
+        return future;
     }
 
     private boolean containsBlacklistedItem(List<ItemRecord> items) {
