@@ -13,6 +13,10 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AztecPhase extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -121,14 +125,14 @@ public class AztecPhase extends Module {
 
     private void doTP() {
         BlockPos playerPos = mc.player.getBlockPos();
-        Direction facingDir = mc.player.getHorizontalFacing();
+        Direction bestDir = getBestEscapeDirection();
 
-        BlockPos bestTarget = findPhaseTarget(playerPos, facingDir);
+        BlockPos bestTarget = findPhaseTarget(playerPos, bestDir);
 
         if (bestTarget == null) {
             for (Direction dir : Direction.values()) {
                 if (dir.getAxis().isVertical()) continue;
-                if (dir == facingDir) continue;
+                if (dir == bestDir) continue;
 
                 BlockPos checkPos = playerPos.offset(dir);
                 if (!mc.world.getBlockState(checkPos).isAir()) {
@@ -139,12 +143,11 @@ public class AztecPhase extends Module {
         }
 
         if (bestTarget == null) {
-            double x = mc.player.getX() + facingDir.getOffsetX() * tpDistance.get();
-            double z = mc.player.getZ() + facingDir.getOffsetZ() * tpDistance.get();
+            double x = mc.player.getX() + bestDir.getOffsetX() * tpDistance.get();
+            double z = mc.player.getZ() + bestDir.getOffsetZ() * tpDistance.get();
             mc.player.setPos(x, mc.player.getY(), z);
             return;
         }
-
 
         double targetX = bestTarget.getX() + 0.5;
         double targetZ = bestTarget.getZ() + 0.5;
@@ -153,28 +156,89 @@ public class AztecPhase extends Module {
         mc.player.setPos(targetX, targetY, targetZ);
     }
 
+    private Direction getBestEscapeDirection() {
+        List<Direction> collisionDirs = getAllCollisionDirections();
+
+        if (collisionDirs.isEmpty()) {
+            return mc.player.getHorizontalFacing();
+        }
+
+        if (collisionDirs.size() == 1) {
+            return collisionDirs.get(0);
+        }
+
+        Vec3d inputVector = getPlayerInputVector();
+
+        if (inputVector.lengthSquared() > 0.001) {
+            return getDirectionFromVector(inputVector);
+        }
+
+        return collisionDirs.get(0);
+    }
+
+    private List<Direction> getAllCollisionDirections() {
+        List<Direction> collisions = new ArrayList<>();
+        BlockPos playerPos = mc.player.getBlockPos();
+
+        for (Direction dir : Direction.values()) {
+            if (dir.getAxis().isVertical()) continue;
+
+            BlockPos checkPos = playerPos.offset(dir);
+            if (!mc.world.getBlockState(checkPos).isAir()) {
+                collisions.add(dir);
+            }
+        }
+
+        return collisions;
+    }
+
+    private Vec3d getPlayerInputVector() {
+        float forward = 0;
+        float sideways = 0;
+
+        if (mc.options.forwardKey.isPressed()) forward += 1;
+        if (mc.options.backKey.isPressed()) forward -= 1;
+        if (mc.options.leftKey.isPressed()) sideways += 1;
+        if (mc.options.rightKey.isPressed()) sideways -= 1;
+
+        if (forward == 0 && sideways == 0) {
+            return Vec3d.ZERO;
+        }
+
+        float yaw = mc.player.getYaw();
+        float radYaw = (float) Math.toRadians(yaw);
+
+        double x = -Math.sin(radYaw) * forward - Math.cos(radYaw) * sideways;
+        double z = Math.cos(radYaw) * forward - Math.sin(radYaw) * sideways;
+
+        return new Vec3d(x, 0, z).normalize();
+    }
+
+    private Direction getDirectionFromVector(Vec3d vector) {
+        if (Math.abs(vector.x) > Math.abs(vector.z)) {
+            return vector.x > 0 ? Direction.EAST : Direction.WEST;
+        } else {
+            return vector.z > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
+    }
+
     private BlockPos findPhaseTarget(BlockPos playerPos, Direction direction) {
         int distance = tpDistance.get();
 
-        // Buscar espacio libre en la dirección especificada
         for (int i = 1; i <= distance; i++) {
             BlockPos checkPos = playerPos.offset(direction, i);
 
-            // Verificar si hay espacio suficiente (2 bloques de altura para el jugador)
             if (isSpaceAvailable(checkPos)) {
                 return checkPos;
             }
 
-            // Si el bloque en el nivel del jugador está sólido, intentar subir
             if (!mc.world.getBlockState(checkPos).isAir() &&
                 isSpaceAvailable(checkPos.up())) {
                 return checkPos.up();
             }
         }
 
-        // Si no se encuentra espacio en línea recta, buscar en diagonales cercanas
         for (int i = 1; i <= distance; i++) {
-            // Buscar en posiciones diagonales
             for (Direction offset : getPerpendicularDirections(direction)) {
                 BlockPos diagonalPos = playerPos.offset(direction, i).offset(offset);
 
@@ -193,11 +257,9 @@ public class AztecPhase extends Module {
     }
 
     private boolean isSpaceAvailable(BlockPos pos) {
-        // Verificar que el bloque y el de arriba estén libres
         if (!mc.world.getBlockState(pos).isAir()) return false;
         if (!mc.world.getBlockState(pos.up()).isAir()) return false;
 
-        // Verificar que el bloque de abajo sea sólido (para no caer al vacío)
         BlockPos below = pos.down();
         return !mc.world.getBlockState(below).isAir();
     }
@@ -235,8 +297,8 @@ public class AztecPhase extends Module {
     }
 
     private void throwPearlSilent(int clientSlot) {
-        Direction collisionDir = getCollisionDirection();
-        float yaw = getYawFromDirection(collisionDir);
+        Direction escapeDir = getBestEscapeDirection();
+        float yaw = getYawFromDirection(escapeDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
@@ -246,8 +308,8 @@ public class AztecPhase extends Module {
     }
 
     private void throwPearlNormal() {
-        Direction collisionDir = getCollisionDirection();
-        float yaw = getYawFromDirection(collisionDir);
+        Direction escapeDir = getBestEscapeDirection();
+        float yaw = getYawFromDirection(escapeDir);
 
         Rotations.rotate(yaw, pitch.get().floatValue(), () -> {
             if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
@@ -263,21 +325,6 @@ public class AztecPhase extends Module {
                 ChatUtils.warningPrefix("AztecAddon", "Failed to throw pearl!");
             }
         });
-    }
-
-    private Direction getCollisionDirection() {
-        BlockPos playerPos = mc.player.getBlockPos();
-
-        for (Direction dir : Direction.values()) {
-            if (dir.getAxis().isVertical()) continue;
-
-            BlockPos checkPos = playerPos.offset(dir);
-            if (!mc.world.getBlockState(checkPos).isAir()) {
-                return dir;
-            }
-        }
-
-        return mc.player.getHorizontalFacing();
     }
 
     private float getYawFromDirection(Direction dir) {

@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(DeathScreen.class)
 public class DeathScreenMixin {
 
-    // ✅ El método ahora es 'static' porque interceptamos un constructor (<init>)
     @ModifyArg(
         method = "<init>",
         at = @At(

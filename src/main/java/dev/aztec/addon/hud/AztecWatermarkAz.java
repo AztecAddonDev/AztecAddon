@@ -33,7 +33,6 @@ public class AztecWatermarkAz extends HudElement {
         .build()
     );
 
-    // ✅ FIX: Usar el mod ID correcto ("aztecaddon") en lugar de "template"
     private static final Identifier ICON_TEXTURE = Identifier.of("aztecaddon", "icon.png");
 
     public static final HudElementInfo<AztecWatermarkAz> INFO = new HudElementInfo<>(
@@ -54,7 +53,6 @@ public class AztecWatermarkAz extends HudElement {
 
         setSize(w, h);
 
-        // ✅ FIX 1.21.11: Usar RenderLayer.getText() para renderizar texturas correctamente
         try {
             renderer.texture(
                 ICON_TEXTURE,
@@ -63,7 +61,6 @@ public class AztecWatermarkAz extends HudElement {
                 Color.WHITE
             );
         } catch (Exception e) {
-            // Fallback: cuadrado verde si la textura no se puede cargar
             renderer.quad(x, y, w, h, new Color(0, 168, 107, 255)); // Verde jade Aztec
         }
     }

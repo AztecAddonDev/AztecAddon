@@ -23,7 +23,6 @@ public class AddonTemplate extends MeteorAddon {
     public void onInitialize() {
         LOG.info("Initializing AztecAddon");
 
-        // Modules - Asegúrate de que TODOS estén aquí
         Modules.get().add(new ModuleExample());
         Modules.get().add(new AutoRespawnAz());
         Modules.get().add(new AutoReplyAz());
@@ -36,11 +35,14 @@ public class AddonTemplate extends MeteorAddon {
         Modules.get().add(new AzCustomFov());
         Modules.get().add(new AutoTotemAz());
         Modules.get().add(new StashLogger());
-        Modules.get().add(new AztecBoatFly());  // ⚠️ Este es el que está causando el crash
+        Modules.get().add(new AztecBoatFly());
         Modules.get().add(new AztecPhase());
         Modules.get().add(new AztecBookBan());
         Modules.get().add(new AztecPacketFly());
         Modules.get().add(new MobSpawnESP());
+        Modules.get().add(new HClipTrollAz());
+        Modules.get().add(new SurroundBreakerAz());
+        Modules.get().add(new HoleESPAz());
 
         // Commands
         Commands.add(new CommandExample());
